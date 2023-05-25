@@ -14,103 +14,64 @@
 //!
 //! # Todo
 //! - [ ] Update documentation
-
-use rand::prelude::SliceRandom;
-use rand::thread_rng;
+//! 
 
 use crate::card::Card;
 use crate::rank::Rank;
 use crate::suit::Suit;
+use rand::prelude::SliceRandom;
+use rand::thread_rng;
 
-/// A wrapper around a Vec of [Card]s.
-///
-/// Provides dealing and shuffling funtionality to randomize Card order and
-/// return a [Card].
-#[derive(Debug)]
-pub struct Deck {
+pub struct Deck<T: DeckState> {
     cards: Vec<Card>,
+    extra: T,
 }
 
-impl Deck {
-    /// Provides a [DeckBuilder] for Deck configuration.
-    #[allow(clippy::new_ret_no_self)]
-    pub fn new() -> DeckBuilder {
-        DeckBuilder { cards: Vec::new() }
-    }
+pub enum DeckType {
+    FullFrench,
+}
 
-    /// Prints all the Cards in the Deck in order for debugging purposes.
-    #[allow(dead_code)]
-    pub fn debug_deck(&self) {
-        for card in self.cards.iter() {
-            println!("{}", card)
+pub trait DeckState {}
+
+struct Start;
+
+struct Building {
+    deck_type: Option<DeckType>,
+}
+
+struct Shuffling;
+
+struct Finished;
+
+impl DeckState for Start {}
+impl DeckState for Building {}
+impl DeckState for Shuffling {}
+impl DeckState for Finished {}
+
+impl Deck<Start> {
+    pub fn custom_new() -> Deck<Building> {
+        Deck {
+            cards: Vec::new(),
+            extra: Building { deck_type: None },
         }
     }
 
-    /// Returns the number of Cards left in the Deck.
-    #[allow(dead_code)]
-    pub fn total_cards(&self) -> usize {
-        self.cards.len()
-    }
-
-    /// Returns the top Card of the Deck.
-    pub fn deal(&mut self) -> Card {
-        self.cards.pop().unwrap()
-    }
-
-    /// Returns a static card intended to be used for debugging.
-    #[allow(dead_code)]
-    pub fn debug_trump(&mut self) -> Card {
-        *self
-            .cards
-            .iter()
-            .find(|e: &&Card| {
-                let (rank, suit) = e.get_value();
-                rank == &Rank::Two && suit == &Suit::Hearts
-            })
-            .unwrap()
-    }
-
-    /// Returns a a series of static cards, intended to be used for debugging.
-    #[allow(dead_code)]
-    pub fn debug_deal(&mut self, index: usize) -> Card {
-        let debug_suit = &Suit::VALUES[index % 4];
-        let debug_rank = &Rank::VALUES[index % 7];
-
-        let find_card = |e: &&Card| {
-            let (rank, suit) = e.get_value();
-            rank == debug_rank && suit == debug_suit
+    pub fn default_new() -> Deck<Finished> {
+        let deck = Deck {
+            cards: Vec::new(),
+            extra: Building { deck_type: None },
         };
-        *self.cards.iter().find(find_card).unwrap()
+        deck.deck_type(DeckType::FullFrench).shuffle(7)
     }
 }
 
-/// Types of Deck that may be created.
-pub enum DeckType {
-    Full,
-}
-
-/// A throwaway object used to configure a [Deck].
-///
-/// # Examples
-/// ```
-/// // create the DeckBuilder
-/// let deck_builder = Deck::new();
-/// // COnfigure the Deck
-/// let deck = deck_builder.deck_type(DeckType::Full).end();
-/// assert_eq!(deck.total_cards(), 52);
-/// ```
-pub struct DeckBuilder {
-    cards: Vec<Card>,
-}
-
-impl DeckBuilder {
-    /// Set the type of Deck, which determines the amount, Rank range, and Suit of cards.
-    pub fn deck_type(self, deck_type: DeckType) -> DeckBuilder {
-        let total_cards = match deck_type {
-            DeckType::Full => 52,
+impl Deck<Building> {
+    pub fn deck_type(self, deck_type: DeckType) -> Deck<Shuffling> {
+        let deck_size = match deck_type {
+            DeckType::FullFrench => 52,
         };
 
-        let mut cards: Vec<Card> = Vec::with_capacity(total_cards);
+        let mut cards: Vec<Card> = Vec::with_capacity(deck_size);
 
         for suit in Suit::VALUES.iter() {
             for rank in Rank::VALUES.iter() {
@@ -118,25 +79,16 @@ impl DeckBuilder {
             }
         }
 
-        DeckBuilder { cards }
-    }
-
-    /// Shuffles the [Deck] 7 times.
-    #[allow(dead_code)]
-    pub fn default_shuffle(self) -> DeckBuilder {
-        let mut cards = self.cards;
-        let mut shuffling = || cards.shuffle(&mut thread_rng());
-        {
-            for _ in 0..7 {
-                shuffling();
-            }
+        Deck {
+            cards,
+            extra: Shuffling,
         }
-
-        DeckBuilder { cards }
     }
+}
 
+impl Deck<Shuffling> {
     /// Shuffles the [Deck] anywhere from 1 to 10 times.
-    pub fn shuffle(self, shuffles: usize) -> DeckBuilder {
+    pub fn shuffle(self, shuffles: usize) -> Deck<Finished> {
         let mut cards = self.cards;
         let mut shuffling = || cards.shuffle(&mut thread_rng());
 
@@ -149,29 +101,44 @@ impl DeckBuilder {
             _ => shuffling(),
         }
 
-        DeckBuilder { cards }
-    }
+        let (first, last) = cards.split_at(cards.len() / 2);
 
-    /// Used by `end` to ensure the [Deck] is always cut before use.
-    fn cut_deck(self) -> DeckBuilder {
-        let cards = self.cards;
+        cards = [last, first].concat();
 
-        let halfway_point = cards.len() / 2;
-
-        let (first_split, second_split) = cards.split_at(halfway_point);
-
-        let first_split = first_split.to_vec();
-        let second_split = second_split.to_vec();
-
-        DeckBuilder {
-            cards: [second_split, first_split].concat(),
+        Deck {
+            cards,
+            extra: Finished,
         }
     }
+}
 
-    /// Finishes configuration of the [Deck] by cutting itself and returns a new [Deck].
-    pub fn end(self) -> Deck {
-        let cards = self.cut_deck().cards;
+impl Deck<Finished> {
+    pub fn deal_top_card(&mut self) -> Option<Card> {
+        self.cards.pop()
+    }
 
-        Deck { cards }
+    pub fn total_cards(&self) -> usize {
+        self.cards.len()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_new_returns_52_card_deck() {
+        let deck = Deck::default_new();
+
+        assert_eq!(deck.total_cards(), 52)
+    }
+
+    #[test]
+    fn custom_new_returns_52_card_deck() {
+        let deck = Deck::custom_new()
+            .deck_type(DeckType::FullFrench)
+            .shuffle(7);
+
+        assert_eq!(deck.total_cards(), 52)
     }
 }
