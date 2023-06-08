@@ -119,6 +119,14 @@ impl Deck<Shuffling> {
             state: PhantomData,
         }
     }
+
+    /// Returns the [Deck] as it was created in the [Building] phase.
+    pub fn no_shuffle (self) -> Deck<Finished> {
+        Deck {
+            cards: self.cards,
+            state: PhantomData
+        }
+    }
 }
 
 impl Deck<Finished> {
