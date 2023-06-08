@@ -35,10 +35,10 @@ mod tests {
     #[test]
     fn suit_names_are_correct_when_printed() {
         let expected_names: [String; 4] = [
-            "Hearts".to_string(),
-            "Clubs".to_string(),
-            "Diamonds".to_string(),
-            "Spades".to_string(),
+            "Hearts".into(),
+            "Clubs".into(),
+            "Diamonds".into(),
+            "Spades".into(),
         ];
         let actual_names = Suit::VALUES.map(|e| format!("{}", e));
 
