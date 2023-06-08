@@ -78,18 +78,29 @@ impl Deck<Building> {
             DeckType::FullFrench => 52,
         };
 
-        let mut cards: VecDeque<Card> = VecDeque::with_capacity(deck_size);
+        Deck {
+            cards: Deck::build_deck(deck_size, &Rank::VALUES, &Suit::VALUES),
+            state: PhantomData,
+        }
+    }
 
-        for suit in Suit::VALUES.iter() {
-            for rank in Rank::VALUES.iter() {
+    pub fn custom_deck_type(self, ranks: &[Rank], suits: &[Suit]) -> Deck<Shuffling> {
+        Deck {
+            cards: Deck::build_deck(ranks.len() * suits.len(), ranks, suits),
+            state: PhantomData
+        }
+    }
+
+    fn build_deck(capacity: usize, ranks: &[Rank], suits: &[Suit]) -> VecDeque<Card> {
+        let mut cards: VecDeque<Card> = VecDeque::with_capacity(capacity);
+
+        for suit in suits.iter() {
+            for rank in ranks.iter() {
                 cards.push_back(Card::new(*rank, *suit))
             }
         }
 
-        Deck {
-            cards,
-            state: PhantomData,
-        }
+        cards
     }
 }
 
