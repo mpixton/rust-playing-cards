@@ -55,20 +55,19 @@ impl DeckState for Finished {}
 impl Deck<Start> {
     /// Begin creation of a custom [Deck].
     pub fn custom_new() -> Deck<Building> {
-        Deck {
-            cards: VecDeque::new(),
-            state: PhantomData,
-        }
+        Deck::new()
     }
 
     /// Create a default playing card [Deck], shuffled 7 times.
     pub fn default_new() -> Deck<Finished> {
-        let deck = Deck {
+        Deck::new().deck_type(DeckType::FullFrench).shuffle(7)
+    }
+
+    fn new() -> Deck<Building> {
+        Deck {
             cards: VecDeque::new(),
             state: PhantomData,
-        };
-
-        deck.deck_type(DeckType::FullFrench).shuffle(7)
+        }
     }
 }
 
