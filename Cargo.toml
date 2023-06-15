@@ -1,6 +1,6 @@
 [package]
 name = "playing_cards"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Micah Pixton"]
 edition = "2021"
 description = "A library for constructing playing cards, decks, and their associated functionality"
