@@ -46,12 +46,6 @@ mod tests {
     }
 
     #[test]
-    fn get_value_returns_rank_suit_tuple() {
-        let card = setup();
-        assert_eq!(card.get_value(), (&Rank::Ace, &Suit::Hearts));
-    }
-
-    #[test]
     fn suit_returns_card_suit() {
         let card = setup();
         assert_eq!(card.suit(), Suit::Hearts);
