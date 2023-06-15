@@ -5,7 +5,7 @@
 //! order. Building a [Deck] is done by calling configuration methods after a
 //! `Deck::custom_new()` call to customize the [Deck] or `Deck::default_new()` to
 //! build a standard French deck.
-//! //!
+//!
 //! # Examples
 //! ```
 //! // Create a new full 52 card deck and shuffle it 7 times
@@ -31,7 +31,7 @@ pub struct Deck<T: DeckState> {
     state: PhantomData<T>,
 }
 
-/// Types of [Deck]s.
+/// Predefined types of [Deck]s.
 pub enum DeckType {
     FullFrench,
 }
@@ -84,10 +84,15 @@ impl Deck<Building> {
         }
     }
 
+    /// Pass in a slice of [Rank]s and [Suit]s to create a [Deck] with a custom set of [Card]s.
+    ///
+    /// Each Rank will be applied with every Suit to create a product of all Ranks and Suits.
+    /// Thus, if a deck with a double set of a Suit is required, the slice should have 2 instances
+    /// of that Suit, and likewise with Ranks.
     pub fn custom_deck_type(self, ranks: &[Rank], suits: &[Suit]) -> Deck<Shuffling> {
         Deck {
             cards: Deck::build_deck(ranks.len() * suits.len(), ranks, suits),
-            state: PhantomData
+            state: PhantomData,
         }
     }
 
