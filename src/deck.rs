@@ -20,8 +20,6 @@
 use crate::card::Card;
 use crate::rank::Rank;
 use crate::suit::Suit;
-use rand::seq::SliceRandom;
-use rand::thread_rng;
 use std::collections::VecDeque;
 use std::marker::PhantomData;
 
@@ -111,22 +109,24 @@ impl Deck<Building> {
 
 impl Deck<Shuffling> {
     /// Shuffles the [Deck] anywhere from 1 to 10 times.
-    pub fn shuffle(self, shuffles: usize) -> Deck<Finished> {
-        let mut cards = self.cards;
-        let mut shuffling = || cards.make_contiguous().shuffle(&mut thread_rng());
+    pub fn shuffle(mut self, shuffles: usize) -> Deck<Finished> {
+        use rand::seq::SliceRandom;
+        use rand::thread_rng;
+
+        let cards = self.cards.make_contiguous();
 
         match shuffles {
             1..=10 => {
                 for _ in 0..=shuffles {
-                    shuffling();
+                    cards.shuffle(&mut thread_rng());
                 }
             }
-            _ => shuffling(),
+            _ => cards.shuffle(&mut thread_rng()),
         }
 
         let halfway = cards.len() / 2;
 
-        let (first, last) = cards.make_contiguous().split_at(halfway);
+        let (first, last) = cards.split_at(halfway);
 
         let cards: VecDeque<Card> = [last, first].concat().into();
 
@@ -137,10 +137,10 @@ impl Deck<Shuffling> {
     }
 
     /// Returns the [Deck] as it was created in the [Building] phase.
-    pub fn no_shuffle (self) -> Deck<Finished> {
+    pub fn no_shuffle(self) -> Deck<Finished> {
         Deck {
             cards: self.cards,
-            state: PhantomData
+            state: PhantomData,
         }
     }
 }
